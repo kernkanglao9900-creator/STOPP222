@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="lo">
+<head>
+    <meta charset="UTF-8">
+    <title>ຮ້ານຂາຍ ID ເກມ</title>
+    <style>
+        body { font-family: "Arial", sans-serif; background: #f0f0f0; }
+        .container { width: 800px; margin: 0 auto; background: #fff; padding: 20px; }
+        h1 { text-align: center; }
+        .game { border: 1px solid #ccc; padding: 10px; margin: 10px 0; }
+        .buy-btn { background: green; color: white; padding: 5px 10px; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ຮ້ານຂາຍ ID ເກມ</h1>
+        <div id="games-list">
+            <!-- ຂໍ້ມູນໄອດີຈາກ PHP -->
+            <?php
+            $conn = new mysqli("localhost", "root", "", "game_id_shop");
+            if ($conn->connect_error) { die("ບໍ່ສາມາດເຊື່ອມຕໍ່ໄດ້: " . $conn->connect_error); }
+
+            $result = $conn->query("SELECT * FROM game_ids WHERE status='available'");
+            while($row = $result->fetch_assoc()){
+                echo "<div class='game'>";
+                echo "<h2>".$row['game_name']."</h2>";
+                echo "<p>ລາຄາ: $".$row['price']."</p>";
+                echo "<a class='buy-btn' href='buy.php?id=".$row['id']."'>ຊື້</a>";
+                echo "</div>";
+            }
+            $conn->close();
+            ?>
+        </div>
+    </div>
+</body>
+</html>
+-- ສ້າງຖານຂໍ້ມູນ
+CREATE DATABASE game_id_shop;
+
+USE game_id_shop;
+
+-- ຕາຕະລາງລູກຄ້າ
+CREATE TABLE customers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL
+);
+
+-- ຕາຕະລາງໄອດີເກມ
+CREATE TABLE game_ids (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    game_name VARCHAR(100) NOT NULL,
+    account_username VARCHAR(100) NOT NULL,
+    account_password VARCHAR(100) NOT NULL,
+    price DECIMAL(10,2) NOT NULL,
+    status ENUM('available','sold') DEFAULT 'available'
+);
+
+-- ຕາຕະລາງການສັ່ງຊື້
+CREATE TABLE orders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT,
+    game_id INT,
+    order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(customer_id) REFERENCES customers(id),
+    FOREIGN KEY(game_id) REFERENCES game_ids(id)
+);
+<?php
+// buy.php
+$conn = new mysqli("localhost", "root", "", "game_id_shop");
+if ($conn->connect_error) { die("ບໍ່ສາມາດເຊື່ອມຕໍ່ໄດ້: " . $conn->connect_error); }
+
+$game_id = intval($_GET['id']);
+$customer_id = 1; // ຕົວຢ່າງ, ໃນຄວາມເປັນຈິງຄວນມາຈາກລູກຄ້າ login
+
+// ແປງສະຖານະໄອດີເກມໃຫ້ແປງເປັນ sold
+$conn->query("UPDATE game_ids SET status='sold' WHERE id=$game_id");
+
+// ເພີ່ມລາຍການສັ່ງຊື້
+$conn->query("INSERT INTO orders (customer_id, game_id) VALUES ($customer_id, $game_id)");
+
+echo "ທ່ານຊື້ໄອດີເກມສຳເລັດ!";
+$conn->close();
+?>
